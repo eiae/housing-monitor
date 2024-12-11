@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Footer Section</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+    <script>
+        // Function to copy email to clipboard
+        function copyEmailToClipboard() {
+            const email = "housing.observatory@gmail.com"; // email address to copy
+            const tempInput = document.createElement("input");
+            tempInput.value = email;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+
+            // Optionally, you can alert the user that the email was copied
+            alert("Email copied to clipboard: " + email);
+        }
+    </script>
+</head>
+
+<body>
+    <footer class="footer">
+        <div class="inner-footer">
+            <!-- Email Logo Section -->
+            <div class="logo-container">
+                <!-- Link now triggers JavaScript function instead of opening a new tab -->
+                <a href="javascript:void(0);" onclick="copyEmailToClipboard()">
+                    <img src="../reports/iho-logo.png" alt="IHO Logo" class="logo">
+                </a>
+            </div>
+
+            <!-- GitHub Logo Section -->
+            <div class="logo-container">
+                <a href="https://github.com/eiae/housing-monitor" target="_blank">
+                    <img src="../reports/github-logo.png" alt="GitHub Logo" class="logo">
+                </a>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>

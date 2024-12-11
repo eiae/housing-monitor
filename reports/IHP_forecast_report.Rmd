@@ -1,0 +1,366 @@
+---
+title: "International Housing Price Nowcast"
+subtitle: "IHO forecast report"
+date: '(updated: `r Sys.Date()`)'
+output:
+  html_document:
+    theme: cerulean   
+    highlight: tango
+    toc: yes
+    toc_float:
+      collapsed: yes
+    toc_depth: 3
+    css: styles.css
+    includes:
+      in_header: Header.Rhtml
+      after_body: footer.Rhtml
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(kableExtra)
+library(dplyr)
+library(gridExtra)
+library(grid)
+
+```
+
+```{r echo=FALSE,message = FALSE,warning=FALSE, comment=FALSE,include=FALSE}
+temp_wd <- "E:/GITHUB/housing-monitor"
+n <- 1
+
+```
+
+
+## Overview
+
+The purpose of this analysis is to provide timely updates of the real house prices in different countries. The publication lag of the [International House Price Database (Dallas Fed)](https://www.dallasfed.org/research/international/houseprice) used in the [International Housing Observatory (IHO)](https://int.housing-observatory.com/index.html) is of around 3 months. This presents an opportunity to forecast the current quarter using higher frequency data (i.e., monthly indicators). As such, the [IHO Global Housing Outlook reports](https://int.housing-observatory.com/reports.html), which analyze the latest house price data release, provides a combination of recent trends with an updated assessment of house price developments based on model estimations. 
+
+  
+#### Table of contents
+  
+::: {style="width: 50%;"}
+
+---
+  
+- [Variables]
+- [Model]
+- [Forecast]
+- [Validation]
+
+:::
+  
+
+  
+## Variables
+
+---
+
+The model variables are divided into quarterly and monthly series. All variables are transformed to be in terms of period-on-period log growth rates. The following table describes the scope of the analysis for the **US**:
+
+| Mnemonic | Variable | Sector | Type | Frequency | SA |
+|:----------:|:----------|:----------:|:----------:|:----------:|:----------:|
+| RHPI | Real House Price Index  | Housing | Hard | Q | Yes | 
+| PER | Housing construction permits  | Housing | Hard | M | Yes | 
+| PCS | Private construction spending | Housing | Hard | M | Yes | 
+| HUC | Privately-Owned Housing Units Under Construction  | Housing | Hard | M | Yes | 
+
+
+### Transformed variables for model {.tabset}
+
+---
+
+#### quarterly
+
+```{r, echo = FALSE, out.width="80%"}
+knitr::include_graphics(paste0(temp_wd,"/charts/Model_variablesQ.png"))
+```
+
+<p class="chart-notes">
+Source: Dallas Fed's International House Price Database, FRED, and own calculations.
+</p>
+
+
+#### monthly
+
+```{r, echo = FALSE, out.width="80%"}
+knitr::include_graphics(paste0(temp_wd,"/charts/Model_variablesM.png"))
+```
+
+<p class="chart-notes">
+Source: Dallas Fed's International House Price Database, FRED, and own calculations.
+</p>
+
+
+  
+## Model
+
+---
+
+The main forecasting model is a mixed-frequency dynamic factor model estimated with classical methods. The benchmark to beat is an autoregressive model with the specification based on the Box-Jenkins method.
+
+<details>
+<summary>Model description</summary>
+
+For illustration purposes the following equations describe a simplified mixed-frequency dynamic factor model (i.e., 1 quarterly and 2 monthly variables):
+
+**Notation:**
+
+- \( x_{Q,t} \) = target quarterly frequency variable with month-to-quarter growth rate mapping measured in months.
+- \( x_{M,t} \) = target quarterly frequency variables measured in months.
+- \( y_{M_j,t} \) = j-th monthly frequency variables measured in months.
+
+**DFM equations:**
+
+\begin{align*}
+x_{Q,t} &= \frac{1}{3}x_{M,t} + \frac{2}{3}x_{M,t-1} + x_{M,t-2} + \frac{2}{3}x_{M,t-3} + \frac{1}{3}x_{M,t-4}, \\
+
+x_{Q,t} &= \frac{1}{3} \gamma_{M} f_{t} + \frac{2}{3} \gamma_{M} f_{t-1} + \gamma_{M} f_{t-2} + \frac{2}{3} \gamma_{M} f_{t-3} + \frac{1}{3} \gamma_{M} f_{t-4} + ... \\
+&+ \frac{1}{3} e_{M,t} + \frac{2}{3} e_{M,t-1} + e_{M,t-2} + \frac{2}{3} e_{M,t-3} + \frac{1}{3} e_{M,t-4}, \\
+
+y_{M_1,t} &= \gamma_{M_1,t} f_t + e_{M_1,t}, \\
+
+y_{M_2,t} &= \gamma_{M_2,t} f_t + e_{M_2,t}, \\
+
+f_{t} &= \phi_1 f_{t-1} + \phi_2 f_{t-2} + \varepsilon_{f,t},  \varepsilon_{f,t} \sim N(0, 1), \\
+
+e_{j,t} &= \psi_{j,1} e_{j,t-1} + \psi_{j,2} e_{j,t-2} + \eta_{j,t}, \eta_{j,t} \sim N(0, \sigma^2_{\eta_j}), j = M, M_1, M_2.
+
+\end{align*}
+
+
+**State-space representation:**
+
+*Measurement equation* $\rightarrow$ \( y_t = H' h_t \) :
+
+\[
+\begin{bmatrix}
+x_{Q,t} \\
+y_{M_1,t} \\
+y_{M_2,t}
+\end{bmatrix} =
+\begin{bmatrix}
+\frac{1}{3} \gamma_M & \frac{2}{3} \gamma_M & \gamma_M & \frac{2}{3} \gamma_M & \frac{1}{3} \gamma_M & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+\gamma_{M_1} & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
+\gamma_{M_2} & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
+\end{bmatrix}
+\begin{bmatrix}
+f_{t} \\
+f_{t-1} \\
+f_{t-2} \\
+f_{t-3} \\
+f_{t-4} \\
+e_{M,t} \\
+e_{M,t-1} \\
+e_{M,t-2} \\
+e_{M,t-3} \\
+e_{M,t-4} \\
+e_{M_1,t} \\
+e_{M_1,t-1} \\
+e_{M_2,t} \\
+e_{M_2,t-1} 
+\end{bmatrix}
+\]
+
+*Transition equation* $\rightarrow$ \( h_t = F h_{t-1} + v_t \):
+
+\[
+\begin{bmatrix}
+f_{t} \\
+f_{t-1} \\
+f_{t-2} \\
+f_{t-3} \\
+f_{t-4} \\
+e_{M,t} \\
+e_{M,t-1} \\
+e_{M,t-2} \\
+e_{M,t-3} \\
+e_{M,t-4} \\
+e_{M_1,t} \\
+e_{M_1,t-1} \\
+e_{M_2,t} \\
+e_{M_2,t-1} 
+\end{bmatrix} =
+\begin{bmatrix}
+\phi_1 & \phi_2 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+0 & 0 & 0 & 0 & 0 & \psi_{M,1} &  \psi_{M,1} & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0\\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & \psi_{M_1,1} & \psi_{M_1,2} & 0 & 0\\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & \psi_{M_2,1} & \psi_{M_2,2}0\\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
+\end{bmatrix}
+\begin{bmatrix}
+f_{t-1} \\
+f_{t-2} \\
+f_{t-3} \\
+f_{t-4} \\
+f_{t-5} \\
+e_{M,t-1} \\
+e_{M,t-2} \\
+e_{M,t-3} \\
+e_{M,t-4} \\
+e_{M,t-5} \\
+e_{M_1,t-1} \\
+e_{M_1,t-2} \\
+e_{M_2,t-1} \\
+e_{M_2,t-22} 
+\end{bmatrix} +
+\begin{bmatrix}
+\varepsilon_{f,t} \\
+0 \\
+0 \\
+0 \\
+0 \\
+\eta_{M,t} \\
+0 \\
+0 \\
+0 \\
+0 \\
+\eta_{M_1,t} \\
+0 \\
+\eta_{M_2,t} \\
+0
+\end{bmatrix}
+\]
+
+</details>
+
+
+## Forecast {.tabset}
+
+---
+ 
+###  Dynamic factor model 
+
+
+```{r, echo = FALSE, out.width="80%"}
+knitr::include_graphics(paste0(temp_wd,"/charts/DFM_forecast.png"))
+```
+
+
+<details>
+<summary>Table</summary>
+
+```{r, echo = FALSE, out.width="80%"}
+# load the saved R data file
+load(paste0(temp_wd, "/data/forecastTable.RData"))
+
+forecastTable$Date <- format(as.Date(forecastTable$Date), "%b-%Y")  # Format date as "Jan-2021"
+
+# apply styling to the transposed table
+forecastTable %>%
+  knitr::kable("html") %>%
+  kableExtra::kable_styling(full_width = FALSE, position = "left", bootstrap_options = c("striped", "hover", "condensed")) %>%
+  kableExtra::row_spec(0, background = "darkgrey", color = "white") %>%  # Header
+  kableExtra::row_spec(1, background = "white") %>%  # First row still observation
+  kableExtra::row_spec(2:nrow(forecastTable), background = "snow2")   # Rest of the rows are forecast
+```
+</details>
+
+
+<p class="chart-notes">
+Source: Own estimations.
+</p>
+###  Autoregressive model 
+
+
+```{r, echo = FALSE, out.width="80%"}
+knitr::include_graphics(paste0(temp_wd,"/charts/AR_forecast.png"))
+```
+
+<p class="chart-notes">
+Source: Own estimations.
+</p>
+
+
+
+## Validation
+
+---
+
+The model validation comprises two exercises. The first one is the in-sample comparison between the observed target variable and the predicted values from the respective model. 
+
+The second exercise is more relevant for forecasting purposes. For the periods 2021Q1-2023Q4 each of the competing models is estimated and then used to forecast the target variable 1-step ahead. The forecasted value is compared to the actual observation that period. For example, in the first iteration the model is estimated until 2021Q1 to forecast 2021Q2. Then, the forecast for 2021Q2 is compared to the 2021Q2 observation. This is done iteratively on an expanding window up to the last estimation period of 2023Q4. The forecast accuracy metric is the RMSE where lower values indicate more accurate forecast (smaller forecast error). This is a pseudo out-of-sample exercise since the revised data is used for the exercise which might be different from the information the forecaster had at the time of doing the forecast.
+
+
+### In-sample
+
+---
+
+####  Dynamic factor model {.tabset}
+
+##### quarterly
+
+```{r, echo = FALSE, out.width="80%"}
+knitr::include_graphics(paste0(temp_wd,"/charts/DFM_fit.png"))
+```
+
+<p class="chart-notes">
+Source: Own estimations.
+</p>
+
+##### monthly
+
+```{r, echo = FALSE, out.width="80%"}
+knitr::include_graphics(paste0(temp_wd,"/charts/Compare_factor_esimatedTarget.png"))
+```
+
+<p class="chart-notes">
+Source: Own estimations.
+</p>
+
+
+#### Autoregressive model
+
+
+```{r, echo = FALSE, out.width="80%"}
+knitr::include_graphics(paste0(temp_wd,"/charts/AR_fit.png"))
+```
+
+<p class="chart-notes">
+Source: Own estimations.
+</p>
+
+
+### Pseudo out-of-sample
+
+---
+
+#### Comparison RMSE  {.tabset}
+
+
+##### iterations
+
+```{r, echo = FALSE, out.width="80%"}
+knitr::include_graphics(paste0(temp_wd,"/charts/RMSE_evolution.png"))
+```
+
+<p class="chart-notes">
+Source: Own estimations.
+</p>
+
+---
+
+##### boxplot
+
+```{r, echo = FALSE, out.width="65%"}
+knitr::include_graphics(paste0(temp_wd,"/charts/RMSE_boxplot.png"))
+```
+
+<p class="chart-notes">
+Source: Own estimations.
+</p>
+
+---
+
+```{r echo=FALSE,message = FALSE,warning=FALSE, comment=FALSE}
+n<-n+1
+```

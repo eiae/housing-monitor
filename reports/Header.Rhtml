@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sample header</title>
+
+    <!-- Link to external stylesheet -->
+    <link rel="stylesheet" type="text/css" href="styles.css" />
+
+    <!-- JavaScript for Back to Top functionality -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Back to top button functionality
+            var link = document.getElementById("back-to-top");
+            var amountScrolled = 250;
+
+            window.addEventListener('scroll', function () {
+                if (window.pageYOffset > amountScrolled) {
+                    link.classList.add('show');
+                } else {
+                    link.className = 'back-to-top';
+                }
+            });
+
+            // Smooth scroll to top on button click
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+
+                var distance = 0 - window.pageYOffset;
+                var increments = distance / (500 / 16);
+
+                function animateScroll() {
+                    window.scrollBy(0, increments);
+                    if (window.pageYOffset <= document.body.offsetTop) {
+                        clearInterval(runAnimation);
+                    }
+                }
+
+                // Loop the animation function
+                var runAnimation = setInterval(animateScroll, 16);
+            });
+        });
+    </script>
+</head>
+
+<body>
+
+    <!-- Main Header Section -->
+    <header>
+        <div class="head-container">
+            <nav>
+                <ul>
+                    <li><a href="https://int.housing-observatory.com/index.html">International Housing Observatory</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Back to Top Link -->
+    <a href="#" id="back-to-top" class="back-to-top" style="display: inline;">Up</a>
+
+</body>
+
+</html>
