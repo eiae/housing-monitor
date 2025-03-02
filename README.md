@@ -6,7 +6,7 @@ This repo contains the routines to nowcast housing prices using a mixed-frequenc
 
 ### Structure:
 
-* `IHP_monitor.R`: main script executing data downloads*, data wrangling, and (classical) estimation of DFM.
+* `IHP_monitor.R`: main script executing data downloads, data wrangling, and (classical) estimation of DFM.
 * `/scripts`: subroutines to handle data, estimate ARMA model and DFM model, and create charts.
 * `/functions`: auxiliary functions to estimate and forecast using the DFM.
 * `/reports`: routine to create forecasting report.
